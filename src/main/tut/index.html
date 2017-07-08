@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Pattern matching in Scala</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="css/style.css"/>
+  </head>
+  <body>
+      <textarea id="source">
+class: center, middle
+
+# Pattern matching in Scala
+
+Nicolas Rinaudo • [`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo) • [Besedo](http://besedo.com)
+
+---
+
+## Overview
+
+This is mostly meant for Scala beginners, although more advanced ones might still learn a thing or two.
+
+The goal is to show what pattern matching is and for attendants to get a feel for when and how it should be used.
+
+---
+
+class: center, middle
+
+# What is pattern matching?
+
+---
+
+## Running Example
+
+In this section, we'll be using the following ADT for examples:
+
+```tut:silent
+sealed abstract class User extends Product with Serializable
+
+object User {
+  final case class Grunt(id: Int) extends User
+  final case class Priviledged(id: Int, name: String) extends User
+  final case object Root extends User
+}
+```
+
+---
+
+## Checking for `Root`
+
+Our `User` type makes it hard to check if a user is `root`.
+
+--
+
+Pattern matching is the answer:
+
+```tut:silent
+def isRoot(user: User): Boolean = user match {
+  case User.Root ⇒ true
+  case _         ⇒ false
+}
+```
+
+---
+
+## Greeting message
+
+We'd like to display user-specific greeting messages.
+
+--
+
+Pattern matches allow us to dig into data structures:
+
+```tut:silent
+def greeting(user: User): String = user match {
+  case User.Root                  ⇒ "My Lord"
+  case User.Priviledged(id, name) ⇒ s"Señor $name"
+  case User.Grunt(id)             ⇒ "you there"
+}
+```
+
+---
+
+## Greeting message ²
+
+In our previous example, we're not using `id`.
+
+--
+
+Any unused value can be "named" `_` instead:
+
+```tut:silent
+def greeting(user: User): String = user match {
+  case User.Root                 ⇒ "My Lord"
+  case User.Priviledged(_, name) ⇒ s"Señor $name"
+  case User.Grunt(_)             ⇒ "you there"
+}
+```
+
+--
+
+This is how our _default_ case in `isRoot` worked.
+
+---
+
+## Looking for Bob
+
+Sales decided they simply _must_ have a custom greeting for anyone called _Bob_.
+
+--
+
+Pattern matching allows you to compare against values:
+
+```tut:silent
+def greeting(user: User): String = user match {
+  case User.Root                  ⇒ "My Lord"
+  case User.Priviledged(_, "Bob") ⇒ "Good ol' Bob"
+  case User.Priviledged(_, name)  ⇒ s"Señor $name"
+  case User.Grunt(_)              ⇒ "you there"
+}
+```
+
+--
+
+Case statements are evaluated sequentially, order matters.
+
+---
+
+## Looking for XXX
+
+Checking whether a user is called Bob is nice.
+
+We're coders though. We like DRY code. Let's look for any name.
+
+--
+
+```tut:silent
+def hasName(user: User, name: String): Boolean = user match {
+  case User.Priviledged(_, name) ⇒ true
+  case _                         ⇒ false
+}
+```
+
+--
+
+Unfortunately, this does not work:
+
+```tut:book
+hasName(User.Priviledged(1, "Xander"), "Vin")
+```
+
+---
+
+## Looking for XXX ²
+
+What we did was accept any `User.Priviledged` with a name - anyone.
+
+--
+
+The correct syntax for this is unpleasant:
+
+```tut:silent
+def hasName(user: User, name: String): Boolean = user match {
+  case User.Priviledged(_, `name`) ⇒ true
+  case _                           ⇒ false
+}
+```
+
+--
+
+But it works:
+
+```tut:book
+hasName(User.Priviledged(1, "Xander"), "Vin")
+
+hasName(User.Priviledged(1, "Xander"), "Xander")
+```
+
+---
+
+## Looking for XXX ³
+
+_Guards_ are a more pleasant (and powerful) alternative:
+
+```tut:silent
+def hasName(user: User, name: String): Boolean = user match {
+  case User.Priviledged(_, n) if n == name ⇒ true
+  case _                                   ⇒ false
+}
+```
+
+---
+
+## Checking for permissions
+
+We want to know if a given user can perform an action.
+
+--
+
+Let's pretend that `root` and any priviledged user can perform any action.
+
+--
+
+```tut:silent
+def hasPermissions(user: User): Boolean = user match {
+  case User.Priviledged(_, _) ⇒ true
+  case User.Root              ⇒ true
+  case _                      ⇒ false
+}
+```
+
+---
+
+## Checking for permissions ²
+
+That `(_, _)` is unpleasant - we can replace it with a type check:
+
+```tut:silent
+def hasPermissions(user: User): Boolean = user match {
+  case _: User.Priviledged ⇒ true
+  case User.Root           ⇒ true
+  case _                   ⇒ false
+}
+```
+
+--
+
+Note that this is acceptable because `User` is an ADT. Do not do the same thing on values of type `Any`.
+
+---
+
+## Checking for permissions ³
+
+Our first two patterns have the same outcome. We can group them using `|`:
+
+
+```tut:silent
+def hasPermissions(user: User): Boolean = user match {
+  case _: User.Priviledged | User.Root ⇒ true
+  case _                               ⇒ false
+}
+```
+
+---
+
+## Checking for permissions ⁴
+
+`hasPermissions` requires having a `User`. What if our system supports anonymous users?
+
+--
+
+Patterns can be applied inside patterns:
+
+```tut:silent
+def hasPermissions(user: Option[User]): Boolean = user match {
+  case Some(_: User.Priviledged | User.Root) ⇒ true
+  case _                                     ⇒ false
+}
+```
+
+---
+
+## Multiple names
+
+Sales have decided that users should be allowed to have more than one name.
+
+--
+
+Let's amend our ADT:
+
+```tut:silent
+sealed abstract class User extends Product with Serializable
+
+object User {
+  final case class Grunt(id: Int) extends User
+  final case object Root extends User
+  final case class Priviledged(id: Int,
+    names: List[String]) extends User
+}
+```
+
+--
+
+But, of course, we still want our Bob promotion.
+
+---
+
+## Looking for Bob, improved
+
+We want to identify users whose first name is Bob.
+
+--
+
+Patterns can match on sequences, and use `_*` to signify _0 or more values_.
+
+```tut:silent
+def isBob(user: Option[User]): Boolean = user match {
+  case Some(User.Priviledged(_, List("Bob", _*))) ⇒ true
+  case _                                          ⇒ false
+}
+```
+
+---
+
+## Looking for Bob, improved ²
+
+Patterns support _infix operators_, and `List` is a good example of that:
+
+```tut:silent
+def isBob(user: Option[User]): Boolean = user match {
+  case Some(User.Priviledged(_, "Bob" :: _)) ⇒ true
+  case _                                     ⇒ false
+}
+```
+
+---
+
+## Finding Bob
+
+For reasons unclear (I'm running out of ideas), sales has decided that only Bob is allowed to log in.
+
+--
+
+They're likely to realise it's a bad idea. Let's implement that in a way that is easy to rollback.
+
+We want a filter that:
+
+* leaves any Bob alone
+* turns any non-Bob in an unlogged user.
+
+--
+
+```tut:silent
+def filterNonBob(user: Option[User]): Option[User] = user match {
+  case Some(User.Priviledged(id, "Bob" :: Nil)) ⇒
+    Some(User.Priviledged(id, List("Bob")))
+
+  case _ ⇒ None
+}
+```
+
+---
+
+## Finding Bob ²
+
+That is nasty, though.
+
+--
+
+Patterns allow us to assign a match to a value though `@`:
+
+```tut:silent
+def filterNonBob(user: Option[User]): Option[User] = user match {
+  case a @ Some(User.Priviledged(_, "Bob" :: Nil)) ⇒ a
+  case _                                           ⇒ None
+}
+```
+
+---
+
+class: center, middle
+
+# How it works under the hood
+
+---
+
+## Simple extractors
+
+An extractor is defined through the `unapply` method in an object.
+
+The most common case is for it to return an `Option`.
+
+
+```tut:silent
+object FirstName {
+  def unapply(user: User.Priviledged): Option[String] =
+    user.names.headOption
+}
+```
+
+--
+
+We can now use `FirstName` in a pattern:
+
+```tut:book
+User.Priviledged(0, List("Bob")) match {
+  case FirstName(name) ⇒ s"has first name $name"
+  case _               ⇒ "no first name"
+}
+```
+
+---
+
+## Infix extractors
+
+If `unapply` returns a `Tuple2`, you can use infix notation.
+
+```tut:silent
+object FollowedBy {
+  def unapply(user: User.Priviledged)
+      : Option[(String, List[String])] =
+    user.names.headOption.map(n ⇒ (n, user.names.drop(1)))
+}
+```
+
+--
+
+We can now use `FollowedBy` in infix notation:
+
+```tut:book
+User.Priviledged(0, List("Billy", "Bob")) match {
+  case first FollowedBy _ ⇒ s"has first name $first"
+  case _                  ⇒ "no first name"
+}
+```
+
+---
+
+## Sequence extractors
+
+If `unapplySeq` is defined, you can use variadic syntax.
+
+```tut:silent
+object FancyNames {
+  def unapplySeq(user: User.Priviledged)
+      : Option[(Int, Seq[String])] =
+    Some((user.id, user.names))
+}
+```
+
+--
+
+We can now match on parts of the list of names:
+
+```tut:book
+User.Priviledged(0, List("Billy", "Bob", "Jim")) match {
+  case FancyNames(_, "Billy", "Bob", _*) ⇒ "billy bob something"
+  case _                                 ⇒ "who?"
+}
+```
+
+---
+
+## Predicate extractors
+
+If `unapply` returns a `Boolean`, it can be used as a predicate.
+
+```tut:silent
+object HasPermission {
+  def unapply(user: User): Boolean = user match {
+    case _: User.Priviledged | User.Root ⇒ true
+    case _                               ⇒ false
+  }
+}
+```
+
+--
+
+We can now check whether user has permissions:
+
+```tut:book
+User.Root match {
+  case HasPermission() ⇒ "with permissions!"
+  case _               ⇒ "without permissions!"
+}
+```
+
+---
+
+class: center, middle
+
+# Other uses of pattern matching
+
+---
+
+## Variable assignment
+
+Let's create a way to query the current user:
+
+```tut:silent
+def getCurrentUser: User =
+  User.Priviledged(1, List("Billy", "Bob"))
+```
+
+--
+
+We can use extractors when declaring variables:
+
+```tut:book
+val User.Priviledged(id, name :: _) = getCurrentUser
+```
+
+---
+
+## Variable assignment ²
+
+Be very careful though, this can fail at runtime if the extractor does not match:
+
+```tut:book:fail
+val User.Grunt(id) = getCurrentUser
+```
+
+---
+
+## Exception handling
+
+In Scala, exception handling is a pattern match:
+
+```tut:book
+try {
+  throw new java.io.IOException()
+} catch {
+  case e: java.io.IOException ⇒ s"IO exception"
+  case _: Throwable           ⇒ "not an IO exception"
+}
+```
+
+---
+
+## For-comprehensions
+
+Given a list of users:
+
+```tut:silent
+val users = List(User.Root, User.Priviledged(1, List("Bob")))
+```
+
+--
+
+We can use patterns in for-comprehension to both filter and extract data:
+
+```tut:book
+for {
+  User.Priviledged(id, "Bob" :: _) <- users
+} yield id
+```
+
+
+---
+
+## Anonymous functions
+
+Pattern matches can be used as partial functions:
+
+```tut:silent
+val f: PartialFunction[User, Int] = _ match {
+  case User.Priviledged(id, _) ⇒ id
+}
+```
+
+--
+
+And since partial functions are functions, we can use patterns as anonymous functions:
+
+```tut:book
+users.collect {
+  case User.Priviledged(id, "Bob" :: _) => id
+}
+```
+
+---
+
+
+## More information
+
+TODO
+Slides available on https://nrinaudo.github.io/talk-scala-best-practices/
+
+Find me on Twitter ([`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo))
+
+Get in touch with [`Besedo`](https://twitter.com/besedo_official), we're always on the lookout for Scala talent
+
+Slides backed by [remark.js](https://remarkjs.com/) and [Rob Norris](https://twitter.com/tpolecat)' amazing
+[tut](https://github.com/tpolecat/tut)
+
+
+---
+
+class: center, middle
+
+# Thanks!
+
+    </textarea>
+    <script src="js/remark.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+        var slideshow = remark.create({
+        highlightStyle: 'solarized-dark'
+      });
+    </script>
+  </body>
+</html>
