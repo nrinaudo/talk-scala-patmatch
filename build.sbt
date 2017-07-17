@@ -4,7 +4,7 @@ scalaVersion := "2.12.2"
 
 enablePlugins(TutPlugin, SitePlugin, GhpagesPlugin)
 
-git.remoteRepo := "git@github.com:nrinaudo/workshop-finch.git"
+git.remoteRepo := "git@github.com:nrinaudo/talk-scala-patmatch.git"
 
 val tutDirName = settingKey[String]("tut output directory")
 tutDirName := "./"
