@@ -520,10 +520,10 @@ In Scala, exception handling is a pattern match:
 try {
   throw new java.io.IOException()
 } catch {
-  case e: java.io.IOException ⇒ s"IO exception"
+  case e: java.io.IOException ⇒ s"IO exception: ${e.getMessage}"
   case _: Throwable           ⇒ "not an IO exception"
 }
-// res9: String = IO exception
+// res9: String = IO exception: null
 ```
 
 ---
