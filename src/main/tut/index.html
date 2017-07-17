@@ -530,7 +530,7 @@ We can use patterns in for-comprehension to both filter and extract data:
 
 ```tut:book
 for {
-  User.Priviledged(id, "Bob" :: _) <- users
+  User.Priviledged(id, "Bob" :: _) ← users
 } yield id
 ```
 
@@ -553,7 +553,7 @@ And since partial functions are functions, we can use patterns as anonymous func
 
 ```tut:book
 users.collect {
-  case User.Priviledged(id, "Bob" :: _) => id
+  case User.Priviledged(id, "Bob" :: _) ⇒ id
 }
 ```
 
