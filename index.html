@@ -72,9 +72,9 @@ Pattern matches allow us to dig into data structures:
 
 ```scala
 def greeting(user: User): String = user match {
-  case User.Root                  ⇒ "My Lord"
+  case User.Root                 ⇒ "My Lord"
   case User.Privileged(id, name) ⇒ s"Señor $name"
-  case User.Grunt(id)             ⇒ "you there"
+  case User.Grunt(id)            ⇒ "you there"
 }
 ```
 
@@ -90,9 +90,9 @@ Any unused value can be "named" `_` instead:
 
 ```scala
 def greeting(user: User): String = user match {
-  case User.Root                 ⇒ "My Lord"
+  case User.Root                ⇒ "My Lord"
   case User.Privileged(_, name) ⇒ s"Señor $name"
-  case User.Grunt(_)             ⇒ "you there"
+  case User.Grunt(_)            ⇒ "you there"
 }
 ```
 
@@ -112,10 +112,10 @@ Pattern matching allows you to compare against values:
 
 ```scala
 def greeting(user: User): String = user match {
-  case User.Root                  ⇒ "My Lord"
+  case User.Root                 ⇒ "My Lord"
   case User.Privileged(_, "Bob") ⇒ "Good ol' Bob"
   case User.Privileged(_, name)  ⇒ s"Señor $name"
-  case User.Grunt(_)              ⇒ "you there"
+  case User.Grunt(_)             ⇒ "you there"
 }
 ```
 
@@ -136,7 +136,7 @@ We're coders though. We like DRY code. Let's look for any name.
 ```scala
 def hasName(user: User, name: String): Boolean = user match {
   case User.Privileged(_, name) ⇒ true
-  case _                         ⇒ false
+  case _                        ⇒ false
 }
 ```
 
@@ -162,7 +162,7 @@ The correct syntax for this is unpleasant:
 ```scala
 def hasName(user: User, name: String): Boolean = user match {
   case User.Privileged(_, `name`) ⇒ true
-  case _                           ⇒ false
+  case _                          ⇒ false
 }
 ```
 
@@ -187,7 +187,7 @@ _Guards_ are a more pleasant (and powerful) alternative:
 ```scala
 def hasName(user: User, name: String): Boolean = user match {
   case User.Privileged(_, n) if n == name ⇒ true
-  case _                                   ⇒ false
+  case _                                  ⇒ false
 }
 ```
 
@@ -206,8 +206,8 @@ Let's pretend that `root` and any priviledged user can perform any action.
 ```scala
 def hasPermissions(user: User): Boolean = user match {
   case User.Privileged(_, _) ⇒ true
-  case User.Root              ⇒ true
-  case _                      ⇒ false
+  case User.Root             ⇒ true
+  case _                     ⇒ false
 }
 ```
 
@@ -220,8 +220,8 @@ That `(_, _)` is unpleasant - we can replace it with a type check:
 ```scala
 def hasPermissions(user: User): Boolean = user match {
   case _: User.Privileged ⇒ true
-  case User.Root           ⇒ true
-  case _                   ⇒ false
+  case User.Root          ⇒ true
+  case _                  ⇒ false
 }
 ```
 
@@ -239,7 +239,7 @@ Our first two patterns have the same outcome. We can group them using `|`:
 ```scala
 def hasPermissions(user: User): Boolean = user match {
   case _: User.Privileged | User.Root ⇒ true
-  case _                               ⇒ false
+  case _                              ⇒ false
 }
 ```
 
@@ -256,7 +256,7 @@ Patterns can be applied inside patterns:
 ```scala
 def hasPermissions(user: Option[User]): Boolean = user match {
   case Some(_: User.Privileged | User.Root) ⇒ true
-  case _                                     ⇒ false
+  case _                                    ⇒ false
 }
 ```
 
@@ -298,7 +298,7 @@ Patterns can match on sequences, and use `_*` to signify _0 or more values_.
 ```scala
 def isBob(user: Option[User]): Boolean = user match {
   case Some(User.Privileged(_, List("Bob", _*))) ⇒ true
-  case _                                          ⇒ false
+  case _                                         ⇒ false
 }
 ```
 
@@ -311,7 +311,7 @@ Patterns support _infix operators_, and `List` is a good example of that:
 ```scala
 def isBob(user: Option[User]): Boolean = user match {
   case Some(User.Privileged(_, "Bob" :: _)) ⇒ true
-  case _                                     ⇒ false
+  case _                                    ⇒ false
 }
 ```
 
@@ -354,7 +354,7 @@ Patterns allow us to assign a match to a value though `@`:
 ```scala
 def filterNonBob(user: Option[User]): Option[User] = user match {
   case a @ Some(User.Privileged(_, "Bob" :: Nil)) ⇒ a
-  case _                                           ⇒ None
+  case _                                          ⇒ None
 }
 ```
 
@@ -454,7 +454,7 @@ If `unapply` returns a `Boolean`, it can be used as a predicate.
 object HasPermission {
   def unapply(user: User): Boolean = user match {
     case _: User.Privileged | User.Root ⇒ true
-    case _                               ⇒ false
+    case _                              ⇒ false
   }
 }
 ```
@@ -576,7 +576,6 @@ users.collect {
 
 ## More information
 
-TODO
 Slides available on https://nrinaudo.github.io/talk-scala-patmatch/
 
 Find me on Twitter ([`@NicolasRinaudo`](https://twitter.com/NicolasRinaudo))
